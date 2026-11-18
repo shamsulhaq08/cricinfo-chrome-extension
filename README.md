@@ -4,6 +4,14 @@ A retro-styled browser extension for Chrome and Firefox providing real-time live
 
 ---
 
+## Screenshots
+
+| Day Mode | Night Mode (Dark) |
+| :---: | :---: |
+| <img src="assets/screenshot-light.png" alt="Classic Cricket Scores - Day Mode" width="380"/> | <img src="assets/screenshot-dark.png" alt="Classic Cricket Scores - Night Mode" width="380"/> |
+
+---
+
 ## Features
 
 - **Real-Time Live Scores**: Live scorecards with automatic updates (configurable refresh rate from 5s to 30s).
@@ -43,6 +51,9 @@ A retro-styled browser extension for Chrome and Firefox providing real-time live
 ## Project Structure
 
 ```text
+├── assets/                # Real-time UI screenshots for documentation
+│   ├── screenshot-light.png
+│   └── screenshot-dark.png
 ├── icons/                 # Extension icons (16, 48, 128, 512 px)
 ├── popup/
 │   ├── popup.html         # Main extension popup interface
