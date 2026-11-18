@@ -10,6 +10,7 @@ const STATE = {
   refreshTimer: null,
   autoRefreshSeconds: 5, // Default: 5s Real-Time ⚡
   filterScope: 'intl', // 'intl' or 'all'
+  timeZone: 'Asia/Karachi', // Default: Pakistan (PKT, UTC+5)
   liveEventsMap: {},
   isFirstMount: true
 };
@@ -37,7 +38,8 @@ const elements = {
   btnManualRefresh: document.getElementById('btnManualRefresh'),
   selectRefreshInterval: document.getElementById('selectRefreshInterval'),
   selectFilterScope: document.getElementById('selectFilterScope'),
-  selectTheme: document.getElementById('selectTheme')
+  selectTheme: document.getElementById('selectTheme'),
+  selectTimeZone: document.getElementById('selectTimeZone')
 };
 
 // Initialize
@@ -127,7 +129,7 @@ async function renderFromCacheIfAvailable() {
 // Load user settings
 async function loadPreferences() {
   try {
-    const data = await getStored(['autoRefresh', 'filterScope', 'pinnedMatchId', 'theme', 'liveEventsMap']);
+    const data = await getStored(['autoRefresh', 'filterScope', 'pinnedMatchId', 'theme', 'timeZone', 'liveEventsMap']);
     if (data.liveEventsMap && typeof data.liveEventsMap === 'object') {
       STATE.liveEventsMap = data.liveEventsMap;
     }
@@ -145,6 +147,18 @@ async function loadPreferences() {
     }
     if (data.pinnedMatchId) {
       STATE.pinnedMatchId = data.pinnedMatchId;
+    }
+    // Region / TimeZone
+    if (data.timeZone) {
+      STATE.timeZone = data.timeZone;
+      if (elements.selectTimeZone) {
+        elements.selectTimeZone.value = data.timeZone;
+      }
+    } else {
+      STATE.timeZone = 'Asia/Karachi';
+      if (elements.selectTimeZone) {
+        elements.selectTimeZone.value = 'Asia/Karachi';
+      }
     }
     // Theme (Day/Night mode)
     const savedTheme = data.theme || 'light';
@@ -324,15 +338,24 @@ function setupEventListeners() {
     const refreshVal = parseInt(elements.selectRefreshInterval.value, 10);
     const scopeVal = elements.selectFilterScope.value;
     const themeVal = elements.selectTheme ? elements.selectTheme.value : STATE.theme;
+    const timeZoneVal = elements.selectTimeZone ? elements.selectTimeZone.value : STATE.timeZone;
     STATE.autoRefreshSeconds = refreshVal;
     STATE.filterScope = scopeVal;
     STATE.theme = themeVal;
+    STATE.timeZone = timeZoneVal;
     applyTheme(themeVal);
-    await setStored({ autoRefresh: refreshVal, filterScope: scopeVal, theme: themeVal });
+    await setStored({ autoRefresh: refreshVal, filterScope: scopeVal, theme: themeVal, timeZone: timeZoneVal });
     elements.settingsOverlay.style.display = 'none';
     startRefreshTimer();
     await loadAllData();
   });
+  if (elements.selectTimeZone) {
+    elements.selectTimeZone.addEventListener('change', async (e) => {
+      STATE.timeZone = e.target.value;
+      await setStored({ timeZone: STATE.timeZone });
+      renderUpcomingMatchesHtml();
+    });
+  }
   elements.btnManualRefresh.addEventListener('click', async () => {
     elements.settingsOverlay.style.display = 'none';
     await loadAllData();
@@ -1975,25 +1998,79 @@ async function fetchLastWicketDismissal(leagueId, eventId, currentPeriod = 1) {
 }
 
 // ----------------------------------------------------
+// TIMEZONE & REGION UTILITIES
+// ----------------------------------------------------
+function resolveUserTimeZone() {
+  const tz = STATE.timeZone || 'Asia/Karachi';
+  if (tz === 'auto') {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Karachi';
+    } catch {
+      return 'Asia/Karachi';
+    }
+  }
+  return tz;
+}
+
+function getTimeZoneMeta() {
+  const tz = STATE.timeZone || 'Asia/Karachi';
+  const resolved = resolveUserTimeZone();
+  const metaMap = {
+    'Asia/Karachi': { code: 'PKT', flag: '🇵🇰', name: 'Pakistan Time' },
+    'Asia/Kolkata': { code: 'IST', flag: '🇮🇳', name: 'India / SL Time' },
+    'Asia/Dhaka': { code: 'BST', flag: '🇧🇩', name: 'Bangladesh Time' },
+    'Asia/Dubai': { code: 'GST', flag: '🇦🇪', name: 'Gulf Standard Time' },
+    'Europe/London': { code: 'UK', flag: '🇬🇧', name: 'UK Time' },
+    'Australia/Sydney': { code: 'AEST', flag: '🇦🇺', name: 'Australian Eastern' },
+    'Australia/Perth': { code: 'AWST', flag: '🇦🇺', name: 'Australian Western' },
+    'Pacific/Auckland': { code: 'NZST', flag: '🇳🇿', name: 'New Zealand Time' },
+    'Africa/Johannesburg': { code: 'SAST', flag: '🇿🇦', name: 'South Africa Time' },
+    'America/Port_of_Spain': { code: 'AST', flag: '🌴', name: 'Caribbean Time' },
+    'America/New_York': { code: 'EST', flag: '🇺🇸', name: 'US Eastern Time' },
+    'America/Los_Angeles': { code: 'PST', flag: '🇺🇸', name: 'US Pacific Time' },
+    'UTC': { code: 'UTC', flag: '🌐', name: 'UTC' }
+  };
+
+  if (metaMap[tz]) return metaMap[tz];
+
+  let code = 'Local';
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: resolved, timeZoneName: 'short' }).formatToParts(new Date());
+    code = parts.find(p => p.type === 'timeZoneName')?.value || 'Local';
+  } catch {}
+  return { code, flag: '🕒', name: resolved };
+}
+
+function getYmdInTimeZone(d, timeZone) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(d).replace(/-/g, '');
+  } catch {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+  }
+}
+
+// ----------------------------------------------------
 // SECTION 1.5: UPCOMING MATCHES (Schedule & Fixtures)
 // ----------------------------------------------------
 async function loadUpcomingMatches() {
   try {
-    const pad = (n) => String(n).padStart(2, '0');
-    const getPktYmd = (d) => {
-      const pkt = new Date(d.getTime() + (5 * 60 * 60 * 1000));
-      return `${pkt.getUTCFullYear()}${pad(pkt.getUTCMonth() + 1)}${pad(pkt.getUTCDate())}`;
-    };
-
+    const targetTz = resolveUserTimeZone();
     const now = new Date();
     const tomDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const day2Date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     const day3Date = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
-    const todayYmd = getPktYmd(now);
-    const tomYmd = getPktYmd(tomDate);
-    const day2Ymd = getPktYmd(day2Date);
-    const day3Ymd = getPktYmd(day3Date);
+    const todayYmd = getYmdInTimeZone(now, targetTz);
+    const tomYmd = getYmdInTimeZone(tomDate, targetTz);
+    const day2Ymd = getYmdInTimeZone(day2Date, targetTz);
+    const day3Ymd = getYmdInTimeZone(day3Date, targetTz);
 
     // Fetch today's upcoming matches + upcoming international schedule for next 3 days
     const [todayData, tomData, day2Data, day3Data] = await Promise.all([
@@ -2050,7 +2127,7 @@ async function loadUpcomingMatches() {
           const rawUrl = event.link || `https://www.espncricinfo.com/series/match/${eventId}`;
           const matchUrl = toCricinfoUrl(rawUrl);
 
-          const timeInfo = formatUpcomingMatchTime(event.date, summary, comp.venue, todayYmd, tomYmd);
+          const timeInfo = formatUpcomingMatchTime(event.date, summary, comp.venue, todayYmd, tomYmd, targetTz);
           const format = getMatchFormat(leagueName, eventName);
           const rank = getUpcomingMatchRank(leagueName, eventName);
 
@@ -2067,6 +2144,8 @@ async function loadUpcomingMatches() {
             rank,
             matchUrl,
             summary,
+            venue: comp.venue || null,
+            rawDate: event.date,
             startTimeMs: new Date(event.date).getTime() || 0,
             ...timeInfo
           });
@@ -2122,28 +2201,25 @@ function getUpcomingMatchRank(leagueName = '', eventName = '') {
   return 4;
 }
 
-function formatUpcomingMatchTime(dateStr, summary = '', venue = null, todayYmd = '', tomYmd = '') {
-  let pktTime = '';
+function formatUpcomingMatchTime(dateStr, summary = '', venue = null, todayYmd = '', tomYmd = '', targetTz = null) {
+  let userTime = '';
   let dayBadge = 'UPCOMING';
   let badgeClass = 'badge-upcoming';
   let groundTime = '';
 
+  const tz = targetTz || resolveUserTimeZone();
   const d = new Date(dateStr);
   if (!isNaN(d.getTime())) {
-    // 1. Pakistan Time (PKT is UTC+5)
     try {
-      const pktFormatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Karachi',
+      const userFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
         hour: 'numeric',
         minute: '2-digit',
         hour12: true
       });
-      pktTime = pktFormatter.format(d);
+      userTime = userFormatter.format(d);
 
-      const pad = (n) => String(n).padStart(2, '0');
-      const pktMs = d.getTime() + (5 * 60 * 60 * 1000);
-      const pktDate = new Date(pktMs);
-      const matchYmd = `${pktDate.getUTCFullYear()}${pad(pktDate.getUTCMonth() + 1)}${pad(pktDate.getUTCDate())}`;
+      const matchYmd = getYmdInTimeZone(d, tz);
 
       if (matchYmd === todayYmd) {
         dayBadge = 'TODAY';
@@ -2153,7 +2229,7 @@ function formatUpcomingMatchTime(dateStr, summary = '', venue = null, todayYmd =
         badgeClass = 'badge-tomorrow';
       } else {
         const shortDateFmt = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'Asia/Karachi',
+          timeZone: tz,
           weekday: 'short',
           month: 'short',
           day: 'numeric'
@@ -2162,7 +2238,7 @@ function formatUpcomingMatchTime(dateStr, summary = '', venue = null, todayYmd =
         badgeClass = 'badge-upcoming';
       }
     } catch (e) {
-      pktTime = '';
+      userTime = '';
     }
   }
 
@@ -2180,7 +2256,8 @@ function formatUpcomingMatchTime(dateStr, summary = '', venue = null, todayYmd =
   }
 
   return {
-    pktTime,
+    userTime,
+    pktTime: userTime,
     groundTime,
     dayBadge,
     badgeClass
@@ -2197,7 +2274,19 @@ function renderUpcomingMatchesHtml() {
     return;
   }
 
+  const targetTz = resolveUserTimeZone();
+  const tzMeta = getTimeZoneMeta();
+  const now = new Date();
+  const tomDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const todayYmd = getYmdInTimeZone(now, targetTz);
+  const tomYmd = getYmdInTimeZone(tomDate, targetTz);
+
   const matchesHtml = STATE.upcomingMatches.map((m) => {
+    // If rawDate is available, re-format with the current active timezone
+    const timeInfo = m.rawDate 
+      ? formatUpcomingMatchTime(m.rawDate, m.summary || '', m.venue || null, todayYmd, tomYmd, targetTz)
+      : { userTime: m.userTime || m.pktTime, groundTime: m.groundTime, dayBadge: m.dayBadge, badgeClass: m.badgeClass };
+
     const flag1Html = getTeamFlagHtml(m.team1, m.team1Id, m.logo1);
     const flag2Html = getTeamFlagHtml(m.team2, m.team2Id, m.logo2);
 
@@ -2205,17 +2294,17 @@ function renderUpcomingMatchesHtml() {
       ? `<span class="format-pill ${m.format.className}">${escapeHtml(m.format.label)}</span>`
       : '';
 
-    const pktDisplay = m.pktTime
-      ? `<span class="time-pkt" title="Pakistan Standard Time (PKT, UTC+5)">🇵🇰 PKT: <b>${escapeHtml(m.pktTime)}</b></span>`
+    const timeDisplay = timeInfo.userTime
+      ? `<span class="time-pkt" title="${escapeHtml(tzMeta.name)} (${escapeHtml(tzMeta.code)})">${tzMeta.flag} ${escapeHtml(tzMeta.code)}: <b>${escapeHtml(timeInfo.userTime)}</b></span>`
       : '';
-    const groundDisplay = m.groundTime
-      ? `<span class="time-ground" title="Ground / Venue Local Time">🏟️ Ground: <b>${escapeHtml(m.groundTime)}</b></span>`
+    const groundDisplay = timeInfo.groundTime
+      ? `<span class="time-ground" title="Ground / Venue Local Time">🏟️ Ground: <b>${escapeHtml(timeInfo.groundTime)}</b></span>`
       : '';
 
     return `
       <div class="upcoming-match-card" data-match-id="${escapeHtml(m.id)}">
         <div class="upcoming-top-row">
-          <span class="day-badge ${m.badgeClass}">${escapeHtml(m.dayBadge)}</span>
+          <span class="day-badge ${timeInfo.badgeClass}">${escapeHtml(timeInfo.dayBadge)}</span>
           ${formatPillHtml}
           <span class="upcoming-league-title" title="${escapeHtml(m.leagueName)}">${escapeHtml(m.leagueName)}</span>
         </div>
@@ -2226,7 +2315,7 @@ function renderUpcomingMatchesHtml() {
           </a>
         </div>
         <div class="match-times-row">
-          ${pktDisplay}
+          ${timeDisplay}
           ${groundDisplay}
         </div>
       </div>

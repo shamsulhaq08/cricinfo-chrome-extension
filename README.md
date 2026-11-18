@@ -24,6 +24,7 @@ A retro-styled browser extension for Chrome and Firefox providing real-time live
 - **Ball-by-Ball Commentary Hover**: Hover over any delivery bubble to inspect ball commentary details in a floating tooltip.
 - **Bowling Partnership Display**: View active bowler statistics alongside their bowling partner (overs, runs, wickets).
 - **Recent Dismissal Information**: Displays details of the most recent wicket falling with batter and bowler names.
+- **Customizable Region & Time Zone**: Select your country/region (Pakistan PKT, India IST, Bangladesh BST, UAE GST, UK GMT/BST, Australia AEST/AWST, South Africa SAST, New Zealand NZST, West Indies AST, USA EST/PST, or Auto System Time) so match schedules and start times automatically adapt to your local time.
 - **Chrome Side Panel Integration**: Header button opens the extension in Chrome's native side panel with a responsive layout.
 - **Upcoming Fixtures**: Schedule view with dates and match start countdowns.
 - **Cricket Headlines**: Expandable headlines with interactive toggles.
