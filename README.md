@@ -6,9 +6,9 @@ A retro-styled browser extension for Chrome and Firefox providing real-time live
 
 ## Screenshots
 
-| Day Mode | Night Mode (Dark) |
-| :---: | :---: |
-| <img src="assets/screenshot-light.png" alt="Classic Cricket Scores - Day Mode" width="380"/> | <img src="assets/screenshot-dark.png" alt="Classic Cricket Scores - Night Mode" width="380"/> |
+| Day Mode | Night Mode (Dark) | Widget Settings |
+| :---: | :---: | :---: |
+| <img src="assets/screenshot-light.png" alt="Classic Cricket Scores - Day Mode" width="260"/> | <img src="assets/screenshot-dark.png" alt="Classic Cricket Scores - Night Mode" width="260"/> | <img src="assets/screenshot-settings.png" alt="Classic Cricket Scores - Widget Settings" width="260"/> |
 
 ---
 
@@ -53,7 +53,8 @@ A retro-styled browser extension for Chrome and Firefox providing real-time live
 ```text
 ├── assets/                # Real-time UI screenshots for documentation
 │   ├── screenshot-light.png
-│   └── screenshot-dark.png
+│   ├── screenshot-dark.png
+│   └── screenshot-settings.png
 ├── icons/                 # Extension icons (16, 48, 128, 512 px)
 ├── popup/
 │   ├── popup.html         # Main extension popup interface
