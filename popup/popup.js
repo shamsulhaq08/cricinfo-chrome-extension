@@ -2020,7 +2020,7 @@ function getTimeZoneMeta() {
     'Asia/Kolkata': { code: 'IST', flag: '🇮🇳', name: 'India / SL Time' },
     'Asia/Dhaka': { code: 'BST', flag: '🇧🇩', name: 'Bangladesh Time' },
     'Asia/Dubai': { code: 'GST', flag: '🇦🇪', name: 'Gulf Standard Time' },
-    'Europe/London': { code: 'UK', flag: '🇬🇧', name: 'UK Time' },
+    'Europe/London': { code: 'GMT', flag: '🇬🇧', name: 'UK Time (GMT/BST)' },
     'Australia/Sydney': { code: 'AEST', flag: '🇦🇺', name: 'Australian Eastern' },
     'Australia/Perth': { code: 'AWST', flag: '🇦🇺', name: 'Australian Western' },
     'Pacific/Auckland': { code: 'NZST', flag: '🇳🇿', name: 'New Zealand Time' },
@@ -2295,7 +2295,7 @@ function renderUpcomingMatchesHtml() {
       : '';
 
     const timeDisplay = timeInfo.userTime
-      ? `<span class="time-pkt" title="${escapeHtml(tzMeta.name)} (${escapeHtml(tzMeta.code)})">${tzMeta.flag} ${escapeHtml(tzMeta.code)}: <b>${escapeHtml(timeInfo.userTime)}</b></span>`
+      ? `<span class="time-pkt" title="${escapeHtml(tzMeta.name)} (${escapeHtml(tzMeta.code)})">${escapeHtml(tzMeta.code)}: <b>${escapeHtml(timeInfo.userTime)}</b></span>`
       : '';
     const groundDisplay = timeInfo.groundTime
       ? `<span class="time-ground" title="Ground / Venue Local Time">🏟️ Ground: <b>${escapeHtml(timeInfo.groundTime)}</b></span>`
