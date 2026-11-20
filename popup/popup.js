@@ -774,15 +774,15 @@ async function loadLiveScores() {
       let recentBalls = null;
       let lastBallCommentary = null;
 
-      // Only inherit previous match fields if innings (period) HAS NOT CHANGED
+      // Only inherit previous match fields if innings (period) HAS NOT CHANGED and match is not at Stumps/Ended
       if (!periodChanged && existingMatch) {
-        if (!isStumps && !isEnded && isLive && hasWicketsDown) {
-          lastWicket = existingMatch.lastWicket || null;
+        if (!isStumps && !isEnded && isLive) {
+          lastWicket = (hasWicketsDown ? existingMatch.lastWicket : null) || null;
+          currentBowler = existingMatch.currentBowler || '';
+          currentBatting = existingMatch.currentBatting || null;
+          recentBalls = existingMatch.recentBalls || null;
+          lastBallCommentary = existingMatch.lastBallCommentary || null;
         }
-        currentBowler = existingMatch.currentBowler || '';
-        currentBatting = existingMatch.currentBatting || null;
-        recentBalls = existingMatch.recentBalls || null;
-        lastBallCommentary = existingMatch.lastBallCommentary || null;
       }
 
       // If period changed (e.g. innings break over, new innings began), clear in-flight flag to force immediate fetch
@@ -1002,8 +1002,8 @@ async function fetchMissingDismissalsAsync(force = false) {
     const isStumps = m.breakClass === 'state-stumps' || /stumps|close\s+of\s+play/i.test(m.breakLabel || '') || /stumps/i.test(m.summary || '');
     const hasWicketsDown = m.currentInningsWickets === null || m.currentInningsWickets > 0;
 
-    // Fetch for all matches with scores in progress (including breaks, stumps, and live play)
-    if (!m.isNotStarted && (!m.isEnded || !m.isEndedMoreThan1Hour)) {
+    // Only fetch live dismissal/bowling/overs for actively live in-progress matches (never for Stumps or Ended)
+    if (m.isLive && !isStumps && !m.isEnded && !m.isNotStarted) {
       if (!force && STATE.dismissalFetchesInFlight.has(m.id)) continue;
       STATE.dismissalFetchesInFlight.add(m.id);
 
@@ -1309,11 +1309,17 @@ function renderLiveMatchesHtml() {
 
     const isActivelyPlaying = match.isLive && !isBreak && !match.isEnded && !match.isNotStarted;
 
-    // Show all details from API for every match (Batting, Bowling, Overs, Wicket, Summary)
-    const showBatting = Boolean(match.currentBatting && match.currentBatting.striker?.name);
-    const showBowler = Boolean(match.currentBowler);
-    const showRecent = Array.isArray(match.recentBalls) && match.recentBalls.length > 0;
-    const showLastWicket = Boolean(match.lastWicket && match.lastWicket.trim().length > 0);
+    const isStumps = match.breakClass === 'state-stumps' || 
+      /stumps|close\s+of\s+play/i.test(match.breakLabel || '') || 
+      /stumps/i.test(match.summary || '');
+
+    // Jo match Stumps par ho ya Ended ho, us me live play details (Batting, Bowling, Overs, Wicket) show nahi honge
+    const canShowLivePlayDetails = match.isLive && !isStumps && !match.isEnded && !match.isNotStarted;
+
+    const showBatting = canShowLivePlayDetails && Boolean(match.currentBatting && match.currentBatting.striker?.name);
+    const showBowler = canShowLivePlayDetails && Boolean(match.currentBowler);
+    const showRecent = canShowLivePlayDetails && Array.isArray(match.recentBalls) && match.recentBalls.length > 0;
+    const showLastWicket = canShowLivePlayDetails && Boolean(match.lastWicket && match.lastWicket.trim().length > 0);
 
     const formattedBatting = showBatting ? formatBattingHtml(match.currentBatting) : '';
     const battingHtml = formattedBatting ? formattedBatting : '';
