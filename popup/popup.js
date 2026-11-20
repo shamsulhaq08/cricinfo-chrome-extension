@@ -440,11 +440,15 @@ function switchMatchesTab(tab) {
 
 // Fetch all live data (Live Scores, Upcoming Schedule, and News)
 async function loadAllData() {
-  await Promise.all([
+  const isSidePanel = document.body.classList.contains('in-sidepanel');
+  const tasks = [
     loadLiveScores(),
-    loadUpcomingMatches(),
-    loadLatestNews()
-  ]);
+    loadUpcomingMatches()
+  ];
+  if (!isSidePanel) {
+    tasks.push(loadLatestNews());
+  }
+  await Promise.all(tasks);
 }
 
 // ----------------------------------------------------
@@ -998,8 +1002,8 @@ async function fetchMissingDismissalsAsync(force = false) {
     const isStumps = m.breakClass === 'state-stumps' || /stumps|close\s+of\s+play/i.test(m.breakLabel || '') || /stumps/i.test(m.summary || '');
     const hasWicketsDown = m.currentInningsWickets === null || m.currentInningsWickets > 0;
 
-    // Fetch for all actively live matches (including 0 wickets down for opening batting/bowling/overs)
-    if (m.isLive && !isStumps && !m.isEnded && !m.isNotStarted) {
+    // Fetch for all matches with scores in progress (including breaks, stumps, and live play)
+    if (!m.isNotStarted && (!m.isEnded || !m.isEndedMoreThan1Hour)) {
       if (!force && STATE.dismissalFetchesInFlight.has(m.id)) continue;
       STATE.dismissalFetchesInFlight.add(m.id);
 
@@ -1305,11 +1309,11 @@ function renderLiveMatchesHtml() {
 
     const isActivelyPlaying = match.isLive && !isBreak && !match.isEnded && !match.isNotStarted;
 
-    const hasWicketsDown = match.currentInningsWickets === null || match.currentInningsWickets > 0;
-    const showLastWicket = isActivelyPlaying && hasWicketsDown;
-    const showBowler = isActivelyPlaying && Boolean(match.currentBowler);
-    const showBatting = isActivelyPlaying && Boolean(match.currentBatting && match.currentBatting.striker?.name);
-    const showRecent = isActivelyPlaying && Array.isArray(match.recentBalls) && match.recentBalls.length > 0;
+    // Show all details from API for every match (Batting, Bowling, Overs, Wicket, Summary)
+    const showBatting = Boolean(match.currentBatting && match.currentBatting.striker?.name);
+    const showBowler = Boolean(match.currentBowler);
+    const showRecent = Array.isArray(match.recentBalls) && match.recentBalls.length > 0;
+    const showLastWicket = Boolean(match.lastWicket && match.lastWicket.trim().length > 0);
 
     const formattedBatting = showBatting ? formatBattingHtml(match.currentBatting) : '';
     const battingHtml = formattedBatting ? formattedBatting : '';

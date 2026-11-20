@@ -133,6 +133,10 @@ body.in-sidepanel .widget-wrapper {
   padding: 6px 8px 10px 8px;
 }
 
+body.in-sidepanel .box-latest-news {
+  display: none !important;
+}
+
 .widget-wrapper {
   background-color: var(--bg-widget);
   padding: 7px 10px 3px 10px;
