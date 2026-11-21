@@ -242,10 +242,27 @@ function setupEventListeners() {
             return;
           }
         }
-        if (typeof browser !== 'undefined' && browser.sidebarAction?.open) {
-          await browser.sidebarAction.open();
-          window.close();
-          return;
+        if (typeof browser !== 'undefined' && browser.sidebarAction) {
+          if (typeof browser.sidebarAction.open === 'function') {
+            await browser.sidebarAction.open();
+            window.close();
+            return;
+          } else if (typeof browser.sidebarAction.toggle === 'function') {
+            await browser.sidebarAction.toggle();
+            window.close();
+            return;
+          }
+        }
+        if (typeof chrome !== 'undefined' && chrome.sidebarAction) {
+          if (typeof chrome.sidebarAction.open === 'function') {
+            await chrome.sidebarAction.open();
+            window.close();
+            return;
+          } else if (typeof chrome.sidebarAction.toggle === 'function') {
+            await chrome.sidebarAction.toggle();
+            window.close();
+            return;
+          }
         }
         if (typeof chrome !== 'undefined' && chrome.windows?.create) {
           chrome.windows.create({

@@ -43,9 +43,11 @@ A retro-styled browser extension for Chrome and Firefox providing real-time live
 5. Pin the extension to your browser toolbar.
 
 ### Mozilla Firefox
-1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on...**
-3. Select `manifest.json` from the repository directory.
+1. Download **`classic-cricket-scores-firefox.zip`** (or `classic-cricket-scores-firefox.xpi`).
+2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
+3. Click **Load Temporary Add-on...**
+4. Select `manifest.json` from the `cricinfo-firefox-extension` folder (or the `.zip` / `.xpi` file).
+5. The extension will load with native Firefox Sidebar support (`sidebar_action`) and full live score updates!
 
 ---
 
