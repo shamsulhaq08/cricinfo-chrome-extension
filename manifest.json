@@ -34,6 +34,9 @@
   "side_panel": {
     "default_path": "popup/sidepanel.html"
   },
+  "sidebar_action": {
+    "default_panel": "popup/sidepanel.html"
+  },
   "host_permissions": [
     "https://site.api.espn.com/*",
     "https://site.web.api.espn.com/*",
