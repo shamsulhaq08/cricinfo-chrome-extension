@@ -44,10 +44,25 @@ const elements = {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-  // Detect if opened in Chrome Side Panel
-  const isSidePanel = window.location.search.includes('sidepanel') || 
-                      window.location.search.includes('panel') || 
-                      (window.innerWidth > 0 && window.innerWidth !== 530 && !window.menubar?.visible);
+  // Detect if opened in Chrome Side Panel or Firefox Sidebar
+  let isSidePanel = window.location.search.includes('sidepanel') || 
+                    window.location.search.includes('panel');
+
+  if (!isSidePanel) {
+    try {
+      if (typeof browser !== 'undefined' && browser.extension?.getViews) {
+        const sidebarViews = browser.extension.getViews({ type: 'sidebar' });
+        if (sidebarViews && sidebarViews.includes(window)) {
+          isSidePanel = true;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!isSidePanel && window.innerWidth > 0 && window.innerWidth !== 530 && !window.menubar?.visible) {
+    isSidePanel = true;
+  }
+
   if (isSidePanel) {
     document.body.classList.add('in-sidepanel');
     if (elements.btnSidePanel) {
